@@ -50,7 +50,23 @@
         "silk_text_thickness": 0.1,
         "silk_text_upright": false,
         "zones": {
-          "min_clearance": 0.15
+          "border_display_style": 2,
+          "border_hatch_pitch": 0.5,
+          "corner_radius": 0.0,
+          "corner_smoothing": 0,
+          "fill_mode": 0,
+          "hatch_gap": 1.5,
+          "hatch_orientation": 0.0,
+          "hatch_smoothing_level": 0,
+          "hatch_smoothing_value": 0.1,
+          "hatch_thickness": 1.0,
+          "min_clearance": 0.13,
+          "min_island_area": 10.0,
+          "min_thickness": 0.2,
+          "pad_connection": 1,
+          "remove_islands": 0,
+          "thermal_relief_gap": 0.2,
+          "thermal_relief_spoke_width": 0.3
         }
       },
       "diff_pair_dimensions": [
@@ -62,19 +78,11 @@
       ],
       "drc_exclusions": [
         [
-          "hole_clearance|72065000|91950000|5300695b-6220-4a71-9d06-ac825f8cd710|efda61f8-c667-491a-8eec-224e9805fc5f",
+          "starved_thermal|72565000|98200000|7f8cd130-613c-4ea8-a795-e1aedb2d2840|2296b54e-3053-49f4-ad71-705b1b83b2cd|F.Cu",
           ""
         ],
         [
-          "hole_clearance|72065000|91950000|dfcb35d4-3e16-4b13-982a-499ac126eb59|efda61f8-c667-491a-8eec-224e9805fc5f",
-          ""
-        ],
-        [
-          "hole_clearance|72065000|98050000|2296b54e-3053-49f4-ad71-705b1b83b2cd|2a4aa419-a396-4397-b2b7-bd692763a954",
-          ""
-        ],
-        [
-          "hole_clearance|72065000|98050000|976c1f9a-02ea-462c-80df-95d839895bf7|2a4aa419-a396-4397-b2b7-bd692763a954",
+          "starved_thermal|72565000|98200000|7f8cd130-613c-4ea8-a795-e1aedb2d2840|976c1f9a-02ea-462c-80df-95d839895bf7|F.Cu",
           ""
         ]
       ],
@@ -249,8 +257,8 @@
           "drill": 0.0
         },
         {
-          "diameter": 0.4,
-          "drill": 0.2
+          "diameter": 0.45,
+          "drill": 0.25
         }
       ],
       "zones_allow_external_fillets": false
@@ -522,7 +530,7 @@
     "classes": [
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.15,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -629,12 +637,30 @@
           "label": "Datasheet",
           "name": "Datasheet",
           "show": true
+        },
+        {
+          "group_by": false,
+          "label": "Sim.Pin",
+          "name": "Sim.Pin",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "Description",
+          "name": "Description",
+          "show": false
+        },
+        {
+          "group_by": false,
+          "label": "#",
+          "name": "${ITEM_NUMBER}",
+          "show": false
         }
       ],
       "filter_string": "",
       "group_symbols": true,
       "include_excluded_from_bom": true,
-      "name": "Default Editing",
+      "name": "",
       "sort_asc": true,
       "sort_field": "Reference"
     },

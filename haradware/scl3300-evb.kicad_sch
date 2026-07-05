@@ -1016,7 +1016,7 @@
 							)
 						)
 					)
-					(number "S1"
+					(number "SH"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1272,6 +1272,39 @@
 				)
 			)
 			(property "Description" "Single-cell battery"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Sim.Device" "V"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Sim.Type" "DC"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Sim.Pins" "1=+ 2=-"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1807,7 +1840,7 @@
 					)
 				)
 			)
-			(property "Sim.Pin" "1=K 2=A"
+			(property "Sim.Pins" "1=K 2=A"
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -6075,7 +6108,7 @@
 					(justify left bottom)
 				)
 			)
-			(property "Footprint" "Package_LGA:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y"
+			(property "Footprint" "evb:DFL-12_L8.6-W7.0-P1.00-LS7.6-BL"
 				(at -10.16 -17.78 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -10589,6 +10622,17 @@
 				)
 			)
 		)
+		(property "Sim.Pins" "1=K 2=A"
+			(at 127 180.34 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "2"
 			(uuid "76b3ca8d-2bed-4837-9bca-82733452ccdf")
 		)
@@ -12717,6 +12761,17 @@
 				)
 			)
 		)
+		(property "Sim.Pins" "1=K 2=A"
+			(at 153.67 67.31 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "97b4113b-86db-4089-a057-8c35433f41a4")
 		)
@@ -13006,7 +13061,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Connector_PinSocket_2.54mm:PinSocket_1x04_P2.54mm_Vertical"
+		(property "Footprint" "Explorer:SSD1306"
 			(at 264.16 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -13421,7 +13476,7 @@
 				)
 			)
 		)
-		(property "Footprint" "evb:SCL3300-D01"
+		(property "Footprint" "evb:DFL-12_L8.6-W7.0-P1.00-LS7.6-BL"
 			(at 134.62 127 0)
 			(hide yes)
 			(show_name no)
@@ -13566,6 +13621,17 @@
 			)
 		)
 		(property "Sim.Pin" "1=K 2=A"
+			(at 153.67 76.2 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=K 2=A"
 			(at 153.67 76.2 0)
 			(hide yes)
 			(show_name no)
@@ -14476,7 +14542,7 @@
 		(pin "A8"
 			(uuid "65763937-f68b-4191-b94a-ca1c0889b9f0")
 		)
-		(pin "S1"
+		(pin "SH"
 			(uuid "fece1ac7-de45-440b-8605-b67ff71825b2")
 		)
 		(pin "A4"
@@ -14650,6 +14716,39 @@
 			)
 		)
 		(property "Description" "Single-cell battery"
+			(at 59.69 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Device" "V"
+			(at 59.69 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" "DC"
+			(at 59.69 26.67 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=+ 2=-"
 			(at 59.69 26.67 0)
 			(hide yes)
 			(show_name no)
@@ -14983,6 +15082,17 @@
 			)
 		)
 		(property "Sim.Pin" "1=K 2=A"
+			(at 153.67 58.42 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=K 2=A"
 			(at 153.67 58.42 0)
 			(hide yes)
 			(show_name no)

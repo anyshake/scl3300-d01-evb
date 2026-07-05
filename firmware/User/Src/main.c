@@ -10,6 +10,8 @@
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
 
+#include "User/Inc/packet.h"
+
 #include "Utils/Inc/delay.h"
 #include "Utils/Inc/gpio.h"
 #include "Utils/Inc/i2c.h"
@@ -30,8 +32,9 @@
 #include "User/Inc/scl3300/regs_entry.h"
 #include "User/Inc/scl3300/utils.h"
 
-#define SAMPLE_RATE 100
-#define CHANNEL_SAMPLES 5
+#define SAMPLE_RATE 250
+#define SEND_INTERVAL 100
+#define CHANNEL_SAMPLES (SAMPLE_RATE / (1000 / SEND_INTERVAL))
 
 static const mcu_utils_gpio_t MCU_STATE_PIN = {
     .port = GPIOC,
@@ -56,14 +59,16 @@ void task_data_acquisition(void* argument) {
     cmd.mode = 0b11;
     scl3300_reg_set_cmd(SCL3300_CS_PIN, &cmd);
 
+    static int16_t z_buf[CHANNEL_SAMPLES];
     static int16_t x_buf[CHANNEL_SAMPLES];
     static int16_t y_buf[CHANNEL_SAMPLES];
-    static int16_t z_buf[CHANNEL_SAMPLES];
 
     static uint8_t sample_idx = 0;
     static uint32_t next_sample_time = 0;
+    static int64_t packet_timestamp = 0;
 
-    uint8_t msg[1024];
+    uint16_t packet_size = get_data_packet_size(CHANNEL_SAMPLES);
+    uint8_t uart_buf[packet_size];
 
     for (;;) {
         uint32_t now = mcu_utils_uptime_get_ms();
@@ -71,6 +76,14 @@ void task_data_acquisition(void* argument) {
             continue;
         }
         next_sample_time = now + (1000 / SAMPLE_RATE);
+
+        if (sample_idx == 0) {
+            packet_timestamp = now;
+        }
+
+        scl3300_reg_acc_z_t acc_z = scl3300_reg_new_acc_z();
+        scl3300_reg_get_acc_z(SCL3300_CS_PIN, &acc_z);
+        z_buf[sample_idx] = acc_z.acc_z;
 
         scl3300_reg_acc_x_t acc_x = scl3300_reg_new_acc_x();
         scl3300_reg_get_acc_x(SCL3300_CS_PIN, &acc_x);
@@ -80,38 +93,21 @@ void task_data_acquisition(void* argument) {
         scl3300_reg_get_acc_y(SCL3300_CS_PIN, &acc_y);
         y_buf[sample_idx] = acc_y.acc_y;
 
-        scl3300_reg_acc_z_t acc_z = scl3300_reg_new_acc_z();
-        scl3300_reg_get_acc_z(SCL3300_CS_PIN, &acc_z);
-        z_buf[sample_idx] = acc_z.acc_z;
-
         sample_idx++;
 
         if (sample_idx == CHANNEL_SAMPLES) {
-            uint16_t offset = 0;
-
-            for (uint8_t i = 0; i < CHANNEL_SAMPLES; i++) {
-                offset += snprintf((char*)&msg[offset],
-                                   sizeof(msg) - offset,
-                                   "%d,", x_buf[i]);
-            }
-
-            for (uint8_t i = 0; i < CHANNEL_SAMPLES; i++) {
-                offset += snprintf((char*)&msg[offset],
-                                   sizeof(msg) - offset,
-                                   "%d,", y_buf[i]);
-            }
-
-            for (uint8_t i = 0; i < CHANNEL_SAMPLES; i++) {
-                offset += snprintf((char*)&msg[offset],
-                                   sizeof(msg) - offset,
-                                   "%d,", z_buf[i]);
-            }
-
-            offset += snprintf((char*)&msg[offset],
-                               sizeof(msg) - offset,
-                               "%d\r\n", SAMPLE_RATE);
-            mcu_utils_uart_write(msg, offset, false);
-
+            encode_data_packet(
+                SEND_INTERVAL,
+                SAMPLE_RATE,
+                uart_buf,
+                packet_size,
+                z_buf,
+                x_buf,
+                y_buf,
+                CHANNEL_SAMPLES,
+                packet_timestamp,
+                false);
+            mcu_utils_uart_write(uart_buf, packet_size, false);
             sample_idx = 0;
         }
     }
@@ -128,7 +124,7 @@ void system_setup(void) {
 
     mcu_utils_i2c_init(false);
     mcu_utils_spi_init(false);
-    mcu_utils_uart_init(115200, false);
+    mcu_utils_uart_init(57600, false);
     mcu_utils_uart2_init(GNSS_BAUDRATE, false);
 
     gnss_init(GNSS_CTL_PIN);
