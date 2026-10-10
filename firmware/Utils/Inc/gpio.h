@@ -11,6 +11,7 @@
 
 #define MCU_UTILS_GPIO_MODE_INPUT 0
 #define MCU_UTILS_GPIO_MODE_OUTPUT 1
+#define MCU_UTILS_GPIO_MODE_INPUT_PULLDOWN 2
 
 typedef struct {
     GPIO_TypeDef* port;

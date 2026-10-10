@@ -1,5 +1,8 @@
 #include "User/Inc/packet.h"
 
+#include "Core/Inc/usart.h"
+#include "Utils/Inc/uart.h"
+
 uint16_t get_data_packet_size(uint8_t channel_chunk_length) {
     uint16_t base_size = sizeof(packet_header_t) +
                          sizeof(packet_timestamp_t) +
@@ -21,7 +24,8 @@ void encode_data_packet(uint16_t packet_sending_interval,
                         int16_t adc1_ch3[],
                         uint8_t channel_chunk_length,
                         int64_t timestamp,
-                        bool gnss_enabled) {
+                        bool gnss_enabled,
+                        const packet_gnss_location_t* gnss_location) {
     uint16_t offset = 0;
     uint8_t* bytes;
 
@@ -81,9 +85,10 @@ void encode_data_packet(uint16_t packet_sending_interval,
     device_config |= (PACKET_DEVICE_CONFIG_CHANNEL_4_INT16 << 18) |
                      (PACKET_DEVICE_CONFIG_CHANNEL_5_INT16 << 16) |
                      (PACKET_DEVICE_CONFIG_CHANNEL_6_INT16 << 14);
-    device_config |= ((gnss_enabled ? PACKET_VARIABLE_CONFIG_BIT_3_ENABLED : PACKET_VARIABLE_CONFIG_BIT_3_DISABLED) << 3) |
-                     ((gnss_enabled ? PACKET_VARIABLE_CONFIG_BIT_2_ENABLED : PACKET_VARIABLE_CONFIG_BIT_2_DISABLED) << 2) |
-                     ((gnss_enabled ? PACKET_VARIABLE_CONFIG_BIT_1_ENABLED : PACKET_VARIABLE_CONFIG_BIT_1_DISABLED) << 1) |
+    bool location_valid = gnss_enabled && gnss_location != NULL && gnss_location->valid;
+    device_config |= ((location_valid ? PACKET_VARIABLE_CONFIG_BIT_3_ENABLED : PACKET_VARIABLE_CONFIG_BIT_3_DISABLED) << 3) |
+                     ((location_valid ? PACKET_VARIABLE_CONFIG_BIT_2_ENABLED : PACKET_VARIABLE_CONFIG_BIT_2_DISABLED) << 2) |
+                     ((location_valid ? PACKET_VARIABLE_CONFIG_BIT_1_ENABLED : PACKET_VARIABLE_CONFIG_BIT_1_DISABLED) << 1) |
                      (PACKET_VARIABLE_CONFIG_BIT_0_ENABLED);
     bytes = (uint8_t*)&device_config;
     for (uint8_t i = 0; i < sizeof(packet_device_config_t); i++) {
@@ -93,18 +98,25 @@ void encode_data_packet(uint16_t packet_sending_interval,
 
     uint32_t device_id = 0xFFFFFFFF;
     float tempFloat = 0;
+    bytes = (uint8_t*)&tempFloat;
     switch ((timestamp / 1000) % 10) {
         case 0:
             bytes = (uint8_t*)&device_id;
             break;
         case 1:
-            bytes = (uint8_t*)&tempFloat;
+            if (location_valid) {
+                tempFloat = gnss_location->latitude;
+            }
             break;
         case 2:
-            bytes = (uint8_t*)&tempFloat;
+            if (location_valid) {
+                tempFloat = gnss_location->longitude;
+            }
             break;
         case 3:
-            bytes = (uint8_t*)&tempFloat;
+            if (location_valid) {
+                tempFloat = gnss_location->elevation;
+            }
             break;
     }
     for (uint8_t i = 0; i < sizeof(packet_variable_data_t); i++) {
@@ -131,4 +143,21 @@ void encode_data_packet(uint16_t packet_sending_interval,
         xor_checksum ^= uart_buf[i];
     }
     uart_buf[offset] = xor_checksum;
+}
+
+void send_data_packet(scl3300_global_states_t* states, int64_t timestamp,
+                      bool gnss_enabled, const packet_gnss_location_t* gnss_location) {
+    /* The same buffer is used by DMA until the previous transmission finishes. */
+    while (huart1.gState != HAL_UART_STATE_READY) {
+        osDelay(1);
+    }
+
+    uint16_t size = get_data_packet_size(states->channel_chunk_length);
+    encode_data_packet(states->packet_sending_interval, states->sample_rate,
+                       states->uart1_packet_buffer, size,
+                       states->accel_acquisition_channel_buffer[0],
+                       states->accel_acquisition_channel_buffer[1],
+                       states->accel_acquisition_channel_buffer[2],
+                       states->channel_chunk_length, timestamp, gnss_enabled, gnss_location);
+    mcu_utils_uart_write(states->uart1_packet_buffer, size, false);
 }

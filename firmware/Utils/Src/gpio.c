@@ -8,11 +8,13 @@ void mcu_utils_gpio_init(bool is_rtos) {
 void mcu_utils_gpio_mode(mcu_utils_gpio_t gpio, uint8_t mode) {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = gpio.pin;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = mode == MCU_UTILS_GPIO_MODE_INPUT_PULLDOWN
+                               ? GPIO_PULLDOWN
+                               : GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Mode = mode == MCU_UTILS_GPIO_MODE_INPUT
-                               ? GPIO_MODE_INPUT
-                               : GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Mode = mode == MCU_UTILS_GPIO_MODE_OUTPUT
+                               ? GPIO_MODE_OUTPUT_PP
+                               : GPIO_MODE_INPUT;
     HAL_GPIO_Init(gpio.port, &GPIO_InitStruct);
 }
 

@@ -20,12 +20,13 @@ bool gnss_get_sentence(uint8_t* str_buf, uint16_t timeout_ms, bool is_rtos) {
     for (int64_t start_time = mcu_utils_uptime_get_ms(); mcu_utils_uptime_get_ms() - start_time < timeout_ms;) {
         line_len = mcu_utils_uart2_read_line(line_buf, GNSS_SENTENCE_BUFFER_SIZE);
         if (line_len > 0) {
+            if (line_len >= GNSS_SENTENCE_BUFFER_SIZE) {
+                continue;
+            }
+            line_buf[line_len] = '\0';
             if (gnss_verify_checksum(line_buf)) {
-                if ((uint16_t)line_len < GNSS_SENTENCE_BUFFER_SIZE) {
-                    strncpy((char*)str_buf, (char*)line_buf, line_len);
-                    str_buf[line_len] = '\0';
-                    return true;
-                }
+                memcpy(str_buf, line_buf, line_len + 1);
+                return true;
             }
         } else if (line_len == -1) {
             line_len = 0;
@@ -43,13 +44,19 @@ uint8_t gnss_padding_sentence(uint8_t* str_buf) {
     uint8_t new_len = 0;
 
     for (uint8_t i = 0; i < str_len; i++) {
+        if (new_len >= GNSS_SENTENCE_BUFFER_SIZE - 1) {
+            return 0;
+        }
         new_str[new_len++] = str_buf[i];
         if (str_buf[i] == ',' && i < str_len - 1 && str_buf[i + 1] == ',') {
+            if (new_len >= GNSS_SENTENCE_BUFFER_SIZE - 1) {
+                return 0;
+            }
             new_str[new_len++] = GNSS_SENTENCE_PADDING_CHAR;
         }
     }
 
-    strncpy((char*)str_buf, (char*)new_str, new_len);
+    memcpy(str_buf, new_str, new_len);
     str_buf[new_len] = '\0';
 
     return new_len;
@@ -57,9 +64,12 @@ uint8_t gnss_padding_sentence(uint8_t* str_buf) {
 
 bool gnss_verify_checksum(uint8_t* str_buf) {
     const char* start = strchr((char*)str_buf, '$');
+    if (start == NULL) {
+        return false;
+    }
     const char* end = strchr(start, '*');
 
-    if (start && end) {
+    if (end && end[1] != '\0' && end[2] != '\0') {
         uint8_t checksum = 0;
         for (const char* ch = start + 1; ch < end; ch++) {
             checksum ^= *ch;

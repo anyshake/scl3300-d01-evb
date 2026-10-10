@@ -2,7 +2,10 @@
 #define __PACKET_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+
+#include "User/Inc/types.h"
 
 typedef uint8_t packet_header_t[2];
 typedef uint8_t packet_timestamp_t[8];
@@ -108,6 +111,9 @@ void encode_data_packet(uint16_t packet_sending_interval,
                         int16_t adc1_ch3[],
                         uint8_t channel_chunk_length,
                         int64_t timestamp,
-                        bool gnss_enabled);
+                        bool gnss_enabled,
+                        const packet_gnss_location_t* gnss_location);
+void send_data_packet(scl3300_global_states_t* states, int64_t timestamp,
+                      bool gnss_enabled, const packet_gnss_location_t* gnss_location);
 
 #endif

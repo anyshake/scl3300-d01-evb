@@ -5,12 +5,15 @@ static uint8_t uart2_dma_rx_char;
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef* huart, uint16_t len) {
     if (huart->Instance == USART2) {
-        for (uint16_t i = 0; i < len; i++) {
+        if (len != 0) {
             uint16_t next_head = (uart2_rx_buffer.head + 1) % MCU_UTILS_UART2_BUFFER_SIZE;
             if (next_head != uart2_rx_buffer.tail) {
                 uart2_rx_buffer.buffer[uart2_rx_buffer.head] = uart2_dma_rx_char;
                 uart2_rx_buffer.head = next_head;
             }
+        }
+        if (HAL_UARTEx_ReceiveToIdle_DMA(&huart2, &uart2_dma_rx_char, sizeof(uart2_dma_rx_char)) == HAL_OK) {
+            __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
         }
     }
 }
@@ -32,7 +35,9 @@ void mcu_utils_uart2_init(uint32_t baudrate, bool is_rtos) {
         HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
         HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
         __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
-        HAL_UARTEx_ReceiveToIdle_DMA(&huart2, &uart2_dma_rx_char, sizeof(uart2_dma_rx_char));
+        if (HAL_UARTEx_ReceiveToIdle_DMA(&huart2, &uart2_dma_rx_char, sizeof(uart2_dma_rx_char)) == HAL_OK) {
+            __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+        }
     }
 
     mcu_utils_delay_ms(100, is_rtos);
@@ -100,6 +105,11 @@ int32_t mcu_utils_uart2_read_line(uint8_t* str, uint16_t len) {
         tmp_tail = (tmp_tail + 1) % MCU_UTILS_UART2_BUFFER_SIZE;
 
         if (count + 1 >= len) {
+            while (ch != '\n' && tmp_tail != uart2_rx_buffer.head) {
+                ch = uart2_rx_buffer.buffer[tmp_tail];
+                tmp_tail = (tmp_tail + 1) % MCU_UTILS_UART2_BUFFER_SIZE;
+            }
+            uart2_rx_buffer.tail = tmp_tail;
             return -1;
         }
 

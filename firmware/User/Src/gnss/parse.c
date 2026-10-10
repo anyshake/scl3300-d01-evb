@@ -214,6 +214,7 @@ void gnss_parse_gga(uint8_t* str_buf, gnss_status_t* status, gnss_location_t* lo
                         status->satellites = (uint8_t)quick_atoi(token);
                     }
                 }
+                break;
             case 8:
                 if (status != NULL) {
                     if (*token != GNSS_SENTENCE_PADDING_CHAR) {
@@ -222,6 +223,7 @@ void gnss_parse_gga(uint8_t* str_buf, gnss_status_t* status, gnss_location_t* lo
                         status->hdop = 0.0;
                     }
                 }
+                break;
             case 9:
                 if (location != NULL) {
                     if (*token != GNSS_SENTENCE_PADDING_CHAR) {
