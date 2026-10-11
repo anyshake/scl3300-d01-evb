@@ -10,6 +10,7 @@
 #define CHANNEL_SAMPLE_CAPACITY 25
 #define SENSOR_ACQUISITION_QUEUE_DEPTH 8
 #define GNSS_REQUIRED_VALID_HDOP 2.0f
+#define GNSS_RESYNC_INTERVAL_MS (10 * 60 * 1000)
 
 static const mcu_utils_gpio_t SAMPLERATE_SELECT_P1 = {.port = GPIOB, .pin = GPIO_PIN_3};
 static const mcu_utils_gpio_t SAMPLERATE_SELECT_P2 = {.port = GPIOB, .pin = GPIO_PIN_4};

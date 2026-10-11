@@ -42,8 +42,7 @@ void mcu_utils_uart_write(uint8_t* tx_data, uint16_t tx_len, bool wait) {
 }
 
 void mcu_utils_uart_flush(void) {
-    uart_rx_buffer.head = 0;
-    uart_rx_buffer.tail = 0;
+    uart_rx_buffer.tail = uart_rx_buffer.head;
 }
 
 void mcu_utils_uart_end(void) {

@@ -9,6 +9,7 @@
 #include "task.h"
 
 #include "User/Inc/gnss/model.h"
+#include "User/Inc/gnss/parse.h"
 #include "User/Inc/gnss/utils.h"
 #include "User/Inc/packet.h"
 #include "User/Inc/peripheral.h"
@@ -76,109 +77,134 @@ void HAL_GPIO_EXTI_Callback(uint16_t pin) {
 
 void task_gnss_acquire(void* argument) {
     scl3300_global_states_t* states = (scl3300_global_states_t*)argument;
-    bool sampling_started = false;
-    bool has_valid_offset = false;
-    uint8_t consecutive_valid_count = 0;
-    int64_t previous_offset_us = INT64_MAX;
     uint8_t message_buf[GNSS_SENTENCE_BUFFER_SIZE];
 
     display_gnss_pps(0, false, 0.0f);
     HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5, 0);
     HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
-    for (;;) {
-        uint32_t flags = osThreadFlagsWait(GNSS_1PPS_EDGE | GNSS_1PPS_UPDATED,
-                                           osFlagsWaitAny, 1500);
-        if ((flags & osFlagsError) != 0 ||
-            (flags & (GNSS_1PPS_EDGE | GNSS_1PPS_UPDATED)) == 0) {
-            continue;
-        }
+    for (bool first_sync = true;;) {
+        bool got_valid_fix = false;
+        uint8_t consecutive_valid_count = 0;
+        int64_t prev_time_diff = INT64_MAX;
+        int64_t current_time_diff = INT64_MAX;
 
-        __disable_irq();
-        uint8_t valid_pps_count = states->gnss_pps_state.valid_pps_count;
-        uint64_t monotonic_time_us = states->monotonic_time_us;
-        uint32_t actual_freq_hz = states->actual_freq_hz;
-        float current_ppm = states->current_ppm;
-        __enable_irq();
+        for (;;) {
+            uint32_t flags = osThreadFlagsWait(GNSS_1PPS_EDGE | GNSS_1PPS_UPDATED,
+                                               osFlagsWaitAny, 1500);
+            bool updated = (flags & osFlagsError) == 0 &&
+                           (flags & GNSS_1PPS_UPDATED) != 0;
 
-        bool calibrated = actual_freq_hz != 0;
-        if (flags & GNSS_1PPS_UPDATED) {
+            if ((flags & osFlagsError) == 0 && (flags & GNSS_1PPS_EDGE) != 0) {
+                mcu_utils_led_blink(MCU_STATE_PIN, 1, true);
+                mcu_utils_gpio_high(MCU_STATE_PIN);
+            }
+
+            __disable_irq();
+            uint8_t valid_pps_count = states->gnss_pps_state.valid_pps_count;
+            uint64_t monotonic_time_us = states->monotonic_time_us;
+            uint32_t actual_freq_hz = states->actual_freq_hz;
+            float current_ppm = states->current_ppm;
+            __enable_irq();
+
+            if (!updated) {
+                if (!first_sync) {
+                    got_valid_fix = false;
+                    break;
+                }
+                if ((flags & osFlagsError) == 0 && (flags & GNSS_1PPS_EDGE) != 0) {
+                    display_gnss_pps(valid_pps_count, actual_freq_hz != 0,
+                                     current_ppm);
+                }
+                continue;
+            }
+
             if (mcu_utils_systime_get_uptime_us() - (int64_t)monotonic_time_us >=
                 500 * 1000) {
                 continue;
             }
 
-            gnss_status_t gnss_status = {.hdop = 999.0f};
+            gnss_status_t gnss_status = {.hdop = GNSS_INVALID_HDOP};
             gnss_location_t gnss_location = {0};
             gnss_time_t gnss_time = {0};
-            int64_t current_offset_us = INT64_MAX;
             bool parsed = parse_gnss_message(message_buf, &gnss_status,
                                              &gnss_location, &gnss_time,
                                              (int64_t)monotonic_time_us,
-                                             &current_offset_us, true);
+                                             &current_time_diff, true);
             if (!parsed) {
-                if (!sampling_started) {
-                    display_gnss_pps(valid_pps_count, calibrated, current_ppm);
+                if (first_sync) {
+                    display_gnss_pps(valid_pps_count, actual_freq_hz != 0,
+                                     current_ppm);
                 }
-                consecutive_valid_count = 0;
-                has_valid_offset = false;
                 continue;
             }
 
-            mcu_utils_led_blink(MCU_STATE_PIN, 1, true);
-            mcu_utils_gpio_high(MCU_STATE_PIN);
-
-            if (!sampling_started) {
+            if (first_sync) {
                 display_gnss_acquiring(gnss_status.satellites,
                                        gnss_status.hdop, current_ppm);
             }
 
-            bool acceptable_fix = gnss_time.is_valid &&
-                                  gnss_status.satellites > 0 &&
-                                  gnss_location.is_valid &&
-                                  gnss_status.hdop <= GNSS_REQUIRED_VALID_HDOP;
-            if (acceptable_fix) {
-                if (!has_valid_offset || current_offset_us == previous_offset_us) {
-                    if (consecutive_valid_count < 10) {
-                        consecutive_valid_count++;
-                    }
+            if (gnss_time.is_valid && gnss_status.satellites > 0) {
+                if (prev_time_diff == INT64_MAX ||
+                    current_time_diff == prev_time_diff) {
+                    consecutive_valid_count++;
                 } else {
                     consecutive_valid_count = 1;
                 }
-                previous_offset_us = current_offset_us;
-                has_valid_offset = true;
+                prev_time_diff = current_time_diff;
 
                 if (consecutive_valid_count >= 10) {
-                    mcu_utils_systime_set_offset(current_offset_us);
-                    taskENTER_CRITICAL();
-                    states->gnss_satellites = gnss_status.satellites;
-                    states->gnss_hdop = gnss_status.hdop;
-                    states->gnss_location.latitude = gnss_location.latitude;
-                    states->gnss_location.longitude = gnss_location.longitude;
-                    states->gnss_location.elevation = gnss_location.elevation;
-                    states->gnss_location.valid = true;
-                    states->gnss_time_locked = true;
-                    taskEXIT_CRITICAL();
-                    if (!sampling_started) {
-                        sampling_started = true;
+                    consecutive_valid_count = 0;
+                    got_valid_fix = true;
+                    mcu_utils_systime_set_offset(current_time_diff);
+                    if (gnss_location.is_valid &&
+                        gnss_status.hdop <= GNSS_REQUIRED_VALID_HDOP) {
+                        taskENTER_CRITICAL();
+                        states->gnss_satellites = gnss_status.satellites;
+                        states->gnss_hdop = gnss_status.hdop;
+                        states->gnss_location.latitude = gnss_location.latitude;
+                        states->gnss_location.longitude = gnss_location.longitude;
+                        states->gnss_location.elevation = gnss_location.elevation;
+                        states->gnss_location.valid = true;
+                        states->gnss_time_locked = true;
+                        taskEXIT_CRITICAL();
                         display_gnss_locked(gnss_status.satellites,
                                             gnss_status.hdop, current_ppm);
-                        osThreadFlagsSet(states->sensor_acquire_task_handle,
-                                         SENSOR_ACQUIRE_ACT);
+                        break;
+                    } else if (!first_sync) {
+                        break;
                     }
                 }
-            } else {
-                consecutive_valid_count = 0;
-                has_valid_offset = false;
             }
-        } else if (!sampling_started) {
-            display_gnss_pps(valid_pps_count, calibrated, current_ppm);
+
         }
 
-        if (sampling_started && (flags & GNSS_1PPS_UPDATED) &&
-            states->gnss_time_locked) {
-            display_gnss_locked(states->gnss_satellites,
-                                states->gnss_hdop, current_ppm);
+        if (got_valid_fix && first_sync) {
+            first_sync = false;
+            osThreadFlagsSet(states->sensor_acquire_task_handle,
+                             SENSOR_ACQUIRE_ACT);
+        }
+
+        if (!first_sync) {
+            int64_t current_time_ms = mcu_utils_systime_get_unix_time_ms();
+            int64_t next_sync_time_ms =
+                current_time_ms + GNSS_RESYNC_INTERVAL_MS -
+                (current_time_ms % GNSS_RESYNC_INTERVAL_MS);
+            for (;;) {
+                int64_t remaining_ms =
+                    next_sync_time_ms - mcu_utils_systime_get_unix_time_ms();
+                if (remaining_ms <= 0) {
+                    break;
+                }
+                uint32_t flags =
+                    osThreadFlagsWait(GNSS_1PPS_EDGE | GNSS_1PPS_UPDATED,
+                                      osFlagsWaitAny, (uint32_t)remaining_ms);
+                if ((flags & osFlagsError) == 0 &&
+                    (flags & GNSS_1PPS_EDGE) != 0) {
+                    mcu_utils_led_blink(MCU_STATE_PIN, 1, true);
+                    mcu_utils_gpio_high(MCU_STATE_PIN);
+                }
+            }
         }
     }
 }

@@ -4,7 +4,7 @@
 #include "User/Inc/utils.h"
 #include "User/Inc/gnss/model.h"
 #include "User/Inc/gnss/parse.h"
-#include "User/Inc/gnss/time.h"
+#include "User/Inc/gnss/utils.h"
 #include "User/Inc/ssd1306/display.h"
 #include "User/Inc/ssd1306/font.h"
 #include "Utils/Inc/systime.h"
