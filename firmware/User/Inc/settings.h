@@ -2,6 +2,7 @@
 #define __SETTINGS_H
 
 #include "User/Inc/gnss/utils.h"
+#include "User/Inc/sca3300/utils.h"
 #include "User/Inc/scl3300/utils.h"
 #include "Utils/Inc/gpio.h"
 
@@ -21,6 +22,9 @@ static const gnss_ctl_pin_t GNSS_CTL_PIN = {
     .rst = {.port = GPIOA, .pin = GPIO_PIN_15},
 };
 static const scl3300_ctl_pin_t SCL3300_CS_PIN = {
+    .cs = {.port = GPIOA, .pin = GPIO_PIN_4},
+};
+static const sca3300_ctl_pin_t SCA3300_CS_PIN = {
     .cs = {.port = GPIOA, .pin = GPIO_PIN_4},
 };
 

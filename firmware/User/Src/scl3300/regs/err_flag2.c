@@ -22,7 +22,7 @@ void scl3300_reg_get_err_flag2(scl3300_ctl_pin_t ctl_pin, scl3300_reg_err_flag2_
     uint16_t err_flag2_data;
 
     scl3300_set_reg_bank(ctl_pin, 0);
-    scl3300_read_reg(ctl_pin, SCL3300_REG_BANK0_STATUS, &err_flag2_data);
+    scl3300_read_reg(ctl_pin, SCL3300_REG_BANK0_ERR_FLAG2, &err_flag2_data);
 
     err_flag2->d_ext_c = (err_flag2_data >> 14) & 0x01;
     err_flag2->a_ext_c = (err_flag2_data >> 13) & 0x01;

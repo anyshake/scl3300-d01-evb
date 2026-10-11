@@ -1,9 +1,6 @@
 #include "User/Inc/scl3300/utils.h"
 
 void scl3300_init(scl3300_ctl_pin_t ctl_pin, bool is_rtos) {
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    DWT->CYCCNT = 0;
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
     mcu_utils_gpio_mode(ctl_pin.cs, MCU_UTILS_GPIO_MODE_OUTPUT);
     mcu_utils_gpio_high(ctl_pin.cs);
     mcu_utils_delay_ms(1000, is_rtos);
@@ -27,14 +24,6 @@ static uint8_t scl3300_get_checksum(uint32_t data) {
     return ~crc;
 }
 
-static void scl3300_nop(void) {
-    uint32_t start = DWT->CYCCNT;
-    uint32_t cycles = SystemCoreClock / 100000U;  // 10 us minimum between SPI frames
-    while ((uint32_t)(DWT->CYCCNT - start) < cycles) {
-        ;
-    }
-}
-
 void scl3300_set_reg_bank(scl3300_ctl_pin_t ctl_pin, uint8_t bank_id) {
     scl3300_write_reg(ctl_pin, SCL3300_REG_BANK_SEL, bank_id);
 }
@@ -52,7 +41,7 @@ void scl3300_read_reg(scl3300_ctl_pin_t ctl_pin, uint8_t reg, uint16_t* rx_data)
     }
     mcu_utils_gpio_high(ctl_pin.cs);
 
-    scl3300_nop();  // required delay for read operation
+    mcu_utils_delay_us(10);  // 10 us minimum between SPI frames
 
     // Send frame again for gettings response data
     mcu_utils_gpio_low(ctl_pin.cs);
@@ -61,7 +50,7 @@ void scl3300_read_reg(scl3300_ctl_pin_t ctl_pin, uint8_t reg, uint16_t* rx_data)
     uint8_t low_byte = mcu_utils_spi_transfer(request_bytes[1]);
     mcu_utils_spi_transfer(request_bytes[0]);
     mcu_utils_gpio_high(ctl_pin.cs);
-    scl3300_nop();
+    mcu_utils_delay_us(10);
 
     *rx_data = ((uint16_t)high_byte << 8) | low_byte;
 }
@@ -79,5 +68,5 @@ void scl3300_write_reg(scl3300_ctl_pin_t ctl_pin, uint8_t reg, uint16_t tx_data)
         mcu_utils_spi_transfer(request_bytes[i - 1]);
     }
     mcu_utils_gpio_high(ctl_pin.cs);
-    scl3300_nop();
+    mcu_utils_delay_us(10);
 }

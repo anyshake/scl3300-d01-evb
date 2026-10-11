@@ -8,5 +8,6 @@
 #include "stm32f1xx_hal.h"
 
 void mcu_utils_delay_ms(uint32_t ms, bool is_rtos);
+void mcu_utils_delay_us(uint32_t us);
 
 #endif

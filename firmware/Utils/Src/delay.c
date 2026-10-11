@@ -13,3 +13,17 @@ void mcu_utils_delay_ms(uint32_t ms, bool is_rtos) {
         HAL_Delay(ms);
     }
 }
+
+void mcu_utils_delay_us(uint32_t us) {
+    if ((DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk) == 0) {
+        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+        DWT->CYCCNT = 0;
+        DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+    }
+
+    uint32_t start = DWT->CYCCNT;
+    uint32_t cycles = us * (SystemCoreClock / 1000000U);
+    while ((uint32_t)(DWT->CYCCNT - start) < cycles) {
+        ;
+    }
+}
